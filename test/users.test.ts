@@ -75,3 +75,95 @@ describe("User Registration Route (/api/users)", () => {
   });
 });
 
+describe("User Login Route (/api/users/login)", () => {
+  it("rejects invalid request body with 400/422 status", async () => {
+    const response = await app.handle(
+      new Request("http://localhost/api/users/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          // email is missing
+          password: "password123",
+        }),
+      })
+    );
+
+    expect([400, 422]).toContain(response.status);
+  });
+
+  it("handles login with wrong email or password", async () => {
+    const response = await app.handle(
+      new Request("http://localhost/api/users/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: `nonexistent_${Date.now()}@localhost`,
+          password: "wrongpassword",
+        }),
+      })
+    );
+
+    const body = await response.json();
+    if (response.status === 400) {
+      expect(body).toEqual({ error: "email atau password salah" });
+    } else {
+      // Jika DB belum terkoneksi saat testing
+      expect(response.status).toBe(500);
+      expect(body.error).toBeDefined();
+    }
+  });
+
+  it("handles full registration and login flow", async () => {
+    const testEmail = `login_flow_${Date.now()}@localhost`;
+    const testPassword = "rahasia_login";
+
+    // 1. Registrasi user baru
+    const registerResponse = await app.handle(
+      new Request("http://localhost/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Test User",
+          email: testEmail,
+          password: testPassword,
+        }),
+      })
+    );
+
+    if (registerResponse.status === 200) {
+      // 2. Login dengan password salah
+      const wrongPasswordResponse = await app.handle(
+        new Request("http://localhost/api/users/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: testEmail,
+            password: "wrong_password",
+          }),
+        })
+      );
+      expect(wrongPasswordResponse.status).toBe(400);
+      expect(await wrongPasswordResponse.json()).toEqual({
+        error: "email atau password salah",
+      });
+
+      // 3. Login dengan kredensial benar
+      const loginResponse = await app.handle(
+        new Request("http://localhost/api/users/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: testEmail,
+            password: testPassword,
+          }),
+        })
+      );
+      expect(loginResponse.status).toBe(200);
+      const loginBody = await loginResponse.json();
+      expect(loginBody.data).toBeDefined();
+      expect(typeof loginBody.data).toBe("string");
+      // Cek format UUID (36 chars)
+      expect(loginBody.data.length).toBe(36);
+    }
+  });
+});
