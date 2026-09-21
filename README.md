@@ -57,8 +57,8 @@ Server akan berjalan secara default di `http://localhost:3000`.
 
 ## 📌 Endpoint API Tersedia
 - `GET /`: Health check (mengembalikan `"Hello World"`)
+- `POST /api/users`: Registrasi user baru (Body: `{ "name": "...", "email": "...", "password": "..." }`)
 - `GET /users`: Mengambil daftar user dari tabel database
-- `POST /users`: Menambahkan user baru (Body JSON: `{ "name": "...", "email": "..." }`)
 
 ---
 

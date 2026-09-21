@@ -2,7 +2,11 @@ import { Elysia, t } from "elysia";
 import { db } from "./db";
 import { users } from "./db/schema";
 
+import { usersRoute } from "./routes/users-route";
+
 export const app = new Elysia()
+  // Modular Routes
+  .use(usersRoute)
   // Health Check route
   .get("/", () => "Hello World")
 
